@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FARSANMAR - Reporte de Siniestro</title>
+  <!-- Librería Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Librería HTML2PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --blue-primary: #006AD7;
+      --blue-light: #9AD9EA;
+      --blue-dark: #21277B;
+      --blue-accent: #5F83B1;
+      --bg-color: #F0F4F8;
+      --card-bg: #FFFFFF;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg-color); color: #333; padding-bottom: 40px; }
+
+    header {
+      background-color: var(--blue-dark);
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    header h1 { font-size: 1.4rem; font-weight: bold; letter-spacing: 1px; }
+    header p { font-size: 0.85rem; color: var(--blue-light); }
+
+    .nav-tabs {
+      display: flex;
+      justify-content: center;
+      background: #E8EEF5;
+      border-bottom: 2px solid var(--blue-accent);
+    }
+    .nav-tab {
+      padding: 12px 25px;
+      font-weight: bold;
+      color: var(--blue-dark);
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+    }
+    .nav-tab.active {
+      background: var(--blue-primary);
+      color: white;
+    }
+
+    .container { max-width: 950px; margin: 20px auto; padding: 0 15px; }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(33, 39, 123, 0.08);
+      border-left: 5px solid var(--blue-primary);
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      color: var(--blue-dark);
+      margin-bottom: 15px;
+      padding-bottom: 5px;
+      border-bottom: 2px solid var(--blue-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--blue-dark); }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 10px;
+      border: 1px solid var(--blue-accent);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--blue-primary);
+      box-shadow: 0 0 0 2px rgba(0, 106, 215, 0.2);
+    }
+
+    .chip-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
+    .chip-selector input[type="radio"] { display: none; }
+    .chip-selector label {
+      padding: 8px 14px;
+      background: #F0F4F8;
+      border: 1px solid var(--blue-accent);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--blue-dark);
+      cursor: pointer;
+    }
+    .chip-selector input:checked + label {
+      background: var(--blue-primary);
+      color: white;
+      border-color: var(--blue-primary);
+    }
+
+    .tab-container { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid var(--blue-light); }
+    .tab-btn {
+      padding: 10px 15px;
+      background: #E8EEF5;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      font-weight: bold;
+      color: var(--blue-dark);
+      cursor: pointer;
+    }
+    .tab-btn.active { background: var(--blue-primary); color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--blue-dark);
+      color: white;
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(33, 39, 123, 0.3);
+    }
+    .btn-submit:hover { background: var(--blue-primary); }
+
+    /* TABLA HISTORIAL */
+    table.historial-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table.historial-table th, table.historial-table td {
+      border: 1px solid var(--blue-light);
+      padding: 10px;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    table.historial-table th {
+      background-color: var(--blue-dark);
+      color: white;
+    }
+    .btn-icon {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 4px;
+      font-size: 0.85rem;
+    }
+    .btn-view { background: #9AD9EA; color: #21277B; }
+    .btn-edit { background: #FFC107; color: #000; }
+    .btn-delete { background: #DC3545; color: white; }
+
+    /* ESTILOS DEL PDF OCULTO */
+    #pdf-template { display: none; }
+    .pdf-page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 15mm;
+      background: white;
+      color: #000;
+      font-family: Arial, sans-serif;
+      font-size: 10pt;
+      box-sizing: border-box;
+    }
+    .pdf-header { text-align: center; border-bottom: 2px solid #21277B; padding-bottom: 5px; margin-bottom: 10px; }
+    .pdf-header h2 { color: #21277B; font-size: 16pt; margin: 0; }
+    .pdf-header h4 { color: #006AD7; font-size: 11pt; margin: 2px 0 0 0; }
+    .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    .pdf-table th, .pdf-table td { border: 1px solid #5F83B1; padding: 4px 6px; font-size: 8.5pt; }
+    .pdf-table th { background-color: #21277B; color: white; text-align: left; }
+    .pdf-table .sub-th { background-color: #9AD9EA; color: #21277B; font-weight: bold; }
+    .box-check { display: inline-block; width: 10px; height: 10px; border: 1px solid #000; text-align: center; line-height: 9px; font-size: 8pt; margin-right: 3px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>FARSANMAR</h1>
+    <p>FORMATO OPERATIVO - PREVENCIÓN DE PÉRDIDAS</p>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchMainTab('registro')">📝 Nuevo Reporte</button>
+    <button class="nav-tab" onclick="switchMainTab('historial')">📋 Historial de Siniestros</button>
+  </div>
+
+  <div class="container">
+    <!-- PESTAÑA 1: NUEVO REPORTE -->
+    <div id="tab-registro">
+      <form id="siniestroForm">
+        <!-- GENERALES -->
+        <div class="card">
+          <h2>📍 Datos Generales de la Tienda</h2>
+          <div class="grid-3" style="margin-bottom: 12px;">
+            <div class="form-group"><label>Fecha:</label><input type="date" id="fecha" required></div>
+            <div class="form-group"><label>Hora:</label><input type="time" id="hora" required></div>
+            <div class="form-group"><label>Tienda / Sucursal:</label><input type="text" id="tienda" placeholder="Ej. Santa María" required></div>
+          </div>
+          <div class="grid-3">
+            <div class="form-group"><label>Domicilio:</label><input type="text" id="domicilio"></div>
+            <div class="form-group"><label>Cruce de Calles:</label><input type="text" id="cruce"></div>
+            <div class="form-group"><label>Colonia:</label><input type="text" id="colonia"></div>
+          </div>
+        </div>
+
+        <!-- TIPO DE INCIDENTE -->
+        <div class="card">
+          <h2>🚨 Tipo de Incidente</h2>
+          <div class="chip-selector">
+            <input type="radio" name="incidente" id="inc_asalto" value="Asalto" checked><label for="inc_asalto">Asalto</label>
+            <input type="radio" name="incidente" id="inc_robo" value="Robo Sim."><label for="inc_robo">Robo Sim.</label>
+            <input type="radio" name="incidente" id="inc_extorsion" value="Extorsión"><label for="inc_extorsion">Extorsión</label>
+            <input type="radio" name="incidente" id="inc_danos" value="Daños"><label for="inc_danos">Daños</label>
+            <input type="radio" name="incidente" id="inc_otro" value="Otro"><label for="inc_otro">Otro</label>
+          </div>
+        </div>
+
+        <!-- CORTES DE CAJA Y AFECTACIÓN -->
+        <div class="card">
+          <h2>💰 Cortes de Caja y Afectación de Mercancía / Valores</h2>
+          <div class="grid-2">
+            <div>
+              <h4 style="color: var(--blue-dark); margin-bottom: 8px;">Cortes de Caja ($)</h4>
+              <div class="grid-2">
+                <div class="form-group"><label>Corte 1 Fondo:</label><input type="number" id="c1_f" value="0"></div>
+                <div class="form-group"><label>Corte 1 Dinero:</label><input type="number" id="c1_d" value="0"></div>
+                <div class="form-group"><label>Corte 2 Fondo:</label><input type="number" id="c2_f" value="0"></div>
+                <div class="form-group"><label>Corte 2 Dinero:</label><input type="number" id="c2_d" value="0"></div>
+              </div>
+            </div>
+            <div>
+              <h4 style="color: var(--blue-dark); margin-bottom: 8px;">Afectación Mercancía ($)</h4>
+              <div class="grid-3">
+                <div class="form-group"><label>Efectivo:</label><input type="number" id="af_efectivo" value="0"></div>
+                <div class="form-group"><label>Vinos:</label><input type="number" id="af_vinos" value="0"></div>
+                <div class="form-group"><label>Cerveza:</label><input type="number" id="af_cerveza" value="0"></div>
+                <div class="form-group"><label>Cigarros:</label><input type="number" id="af_cigarros" value="0"></div>
+                <div class="form-group"><label>Medicamentos:</label><input type="number" id="af_meds" value="0"></div>
+                <div class="form-group"><label>Abarrotes:</label><input type="number" id="af_abarrotes" value="0"></div>
+                <div class="form-group"><label>Ortopedia:</label><input type="number" id="af_ortopedia" value="0"></div>
+                <div class="form-group"><label>Equipo Med.:</label><input type="number" id="af_eqmed" value="0"></div>
+                <div class="form-group"><label>Otros:</label><input type="number" id="af_otros" value="0"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPLEADOS PRESENTES -->
+        <div class="card">
+          <h2>👥 Empleados Presentes</h2>
+          <div class="grid-2">
+            <div style="background: #F9FBFD; padding: 10px; border-radius: 6px; border: 1px solid var(--blue-light);">
+              <h4 style="color: var(--blue-primary); margin-bottom: 6px;">Empleado 1</h4>
+              <div class="form-group"><label>Nombre(s):</label><input type="text" id="emp1_nom"></div>
+              <div class="form-group"><label>Apellidos:</label><input type="text" id="emp1_ape"></div>
+              <div class="grid-2">
+                <div class="form-group"><label>Edad:</label><input type="number" id="emp1_edad"></div>
+                <div class="form-group"><label>Puesto:</label><input type="text" id="emp1_puesto"></div>
+              </div>
+              <div class="form-group"><label>Teléfono:</label><input type="text" id="emp1_tel"></div>
+            </div>
+            <div style="background: #F9FBFD; padding: 10px; border-radius: 6px; border: 1px solid var(--blue-light);">
+              <h4 style="color: var(--blue-primary); margin-bottom: 6px;">Empleado 2</h4>
+              <div class="form-group"><label>Nombre(s):</label><input type="text" id="emp2_nom"></div>
+              <div class="form-group"><label>Apellidos:</label><input type="text" id="emp2_ape"></div>
+              <div class="grid-2">
+                <div class="form-group"><label>Edad:</label><input type="number" id="emp2_edad"></div>
+                <div class="form-group"><label>Puesto:</label><input type="text" id="emp2_puesto"></div>
+              </div>
+              <div class="form-group"><label>Teléfono:</label><input type="text" id="emp2_tel"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HECHOS Y ANEXOS -->
+        <div class="card">
+          <h2>📝 Declaración y Descripción de los Hechos</h2>
+          <div class="grid-2" style="margin-bottom: 12px;">
+            <div>
+              <label style="font-size:0.85rem; font-weight:600; color:var(--blue-dark);">Lesionados:</label>
+              <div class="chip-selector">
+                <input type="radio" name="lesionados" id="les_no" value="NO" checked><label for="les_no">NO</label>
+                <input type="radio" name="lesionados" id="les_leve" value="SÍ (LEVE)"><label for="les_leve">SÍ (Leve)</label>
+                <input type="radio" name="lesionados" id="les_grave" value="SÍ (GRAVE)"><label for="les_grave">SÍ (Grave)</label>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:0.85rem; font-weight:600; color:var(--blue-dark);">Se Anexan Videos:</label>
+              <div class="chip-selector">
+                <input type="radio" name="videos" id="vid_si" value="SÍ"><label for="vid_si">SÍ</label>
+                <input type="radio" name="videos" id="vid_no" value="NO" checked><label for="vid_no">NO</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Descripción detallada de lo sucedido:</label>
+            <textarea id="descripcion_hechos" rows="4" placeholder="Redacte los detalles del evento..."></textarea>
+          </div>
+        </div>
+
+        <!-- SOSPECHOSOS -->
+        <div class="card">
+          <h2>👤 Descripción de Sospechosos (Hasta 4)</h2>
+          <div class="tab-container">
+            <button type="button" class="tab-btn active" onclick="showTab(1)">Sospechoso 1</button>
+            <button type="button" class="tab-btn" onclick="showTab(2)">Sospechoso 2</button>
+            <button type="button" class="tab-btn" onclick="showTab(3)">Sospechoso 3</button>
+            <button type="button" class="tab-btn" onclick="showTab(4)">Sospechoso 4</button>
+          </div>
+          <div id="sospechosos-container"></div>
+        </div>
+
+        <button type="button" class="btn-submit" onclick="guardarYGenerarPDF()">💾 GUARDAR EN LA NUBE Y DESCARGAR PDF</button>
+      </form>
+    </div>
+
+    <!-- PESTAÑA 2: HISTORIAL -->
+    <div id="tab-historial" style="display: none;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h2>📋 Historial de Reportes Guardados</h2>
+          <div>
+            <button class="btn-icon btn-view" onclick="cargarHistorial()">🔄 Actualizar</button>
+            <button class="btn-icon" style="background:#28A745; color:white;" onclick="exportarExcel()">📊 Exportar Excel (.CSV)</button>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="historial-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Tienda</th>
+                <th>Incidente</th>
+                <th>Afectación Est.</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-historial-body">
+              <tr><td colspan="6" style="text-align:center;">Cargando siniestros...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLANTILLA PDF IMPRESION OCULTA -->
+  <div id="pdf-template">
+    <div class="pdf-page" id="pdf-page-1">
+      <div class="pdf-header">
+        <h2>FARSANMAR</h2>
+        <h4>REPORTE DE SINIESTRO - FORMATO OPERATIVO PREVENCIÓN DE PÉRDIDAS</h4>
+      </div>
+      <table class="pdf-table">
+        <tr><td><b>FECHA:</b> <span id="p1_fecha"></span></td><td><b>HORA:</b> <span id="p1_hora"></span></td><td><b>TIENDA:</b> <span id="p1_tienda"></span></td></tr>
+        <tr><td colspan="2"><b>DOMICILIO:</b> <span id="p1_domicilio"></span></td><td><b>COLONIA:</b> <span id="p1_colonia"></span></td></tr>
+        <tr><td colspan="3"><b>CRUCE DE CALLES:</b> <span id="p1_cruce"></span></td></tr>
+      </table>
+      <table class="pdf-table">
+        <tr><th colspan="4">TIPO DE INCIDENTE</th></tr>
+        <tr>
+          <td><span class="box-check" id="p1_inc_asalto"></span> Asalto</td>
+          <td><span class="box-check" id="p1_inc_robo"></span> Robo Sim.</td>
+          <td><span class="box-check" id="p1_inc_extorsion"></span> Extorsión</td>
+          <td><span class="box-check" id="p1_inc_danos"></span> Daños</td>
+        </tr>
+      </table>
+      <table class="pdf-table">
+        <tr><th colspan="3">CORTES DE CAJA</th></tr>
+        <tr class="sub-th"><td>N° DE CORTE</td><td>MONTO DE FONDO</td><td>DINERO EN EL CORTE</td></tr>
+        <tr><td>Corte 1</td><td>$ <span id="p1_c1f"></span></td><td>$ <span id="p1_c1d"></span></td></tr>
+        <tr><td>Corte 2</td><td>$ <span id="p1_c2f"></span></td><td>$ <span id="p1_c2d"></span></td></tr>
+        <tr><td colspan="2"><b>TOTAL DE CORTES</b></td><td><b>$ <span id="p1_total_cortes"></span></b></td></tr>
+      </table>
+      <table class="pdf-table">
+        <tr><th colspan="6">AFECTACIÓN DE MERCANCÍA / VALORES</th></tr>
+        <tr><td><b>Efectivo:</b> $ <span id="p1_af_ef"></span></td><td><b>Vinos:</b> $ <span id="p1_af_vi"></span></td><td><b>Cerveza:</b> $ <span id="p1_af_ce"></span></td></tr>
+        <tr><td><b>Cigarros:</b> $ <span id="p1_af_ci"></span></td><td><b>Medicamentos:</b> $ <span id="p1_af_me"></span></td><td><b>Abarrotes:</b> $ <span id="p1_af_ab"></span></td></tr>
+        <tr><td><b>Ortopedia:</b> $ <span id="p1_af_or"></span></td><td><b>Equipo Méd.:</b> $ <span id="p1_af_eq"></span></td><td><b>Otros:</b> $ <span id="p1_af_ot"></span></td></tr>
+      </table>
+      <table class="pdf-table">
+        <tr><th colspan="2">EMPLEADOS PRESENTES</th></tr>
+        <tr class="sub-th"><td>EMPLEADO 1</td><td>EMPLEADO 2</td></tr>
+        <tr><td><b>Nombre:</b> <span id="p1_e1_nom"></span></td><td><b>Nombre:</b> <span id="p1_e2_nom"></span></td></tr>
+        <tr><td><b>Edad:</b> <span id="p1_e1_edad"></span> | <b>Puesto:</b> <span id="p1_e1_puesto"></span></td><td><b>Edad:</b> <span id="p1_e2_edad"></span> | <b>Puesto:</b> <span id="p1_e2_puesto"></span></td></tr>
+        <tr><td><b>Teléfono:</b> <span id="p1_e1_tel"></span></td><td><b>Teléfono:</b> <span id="p1_e2_tel"></span></td></tr>
+      </table>
+      <table class="pdf-table">
+        <tr><th>DECLARACIÓN Y DESCRIPCIÓN DE LOS HECHOS</th></tr>
+        <tr><td><b>LESIONADOS:</b> <span id="p1_lesionados_txt"></span> &nbsp;&nbsp;|&nbsp;&nbsp; <b>ANEXA VIDEOS:</b> <span id="p1_videos_txt"></span></td></tr>
+        <tr><td style="height: 110px; vertical-align: top; padding-top: 6px;" id="p1_hechos_desc"></td></tr>
+      </table>
+    </div>
+    <div class="pdf-page" id="pdf-page-2">
+      <div class="pdf-header">
+        <h2>FARSANMAR</h2>
+        <h4>DESCRIPCIÓN DE SOSPECHOSOS (REVERSO)</h4>
+      </div>
+      <div id="pdf-sospechosos-tables"></div>
+    </div>
+  </div>
+
+  <script>
+    // Inicialización de Supabase con credenciales del proyecto
+    const SUPABASE_URL = 'https://waueklmhwysbeqmbbmve.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhdWVrbG1od3lzYmVxbWJibXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTY0MzYsImV4cCI6MjEwNzQ5MjQzNn0.tRM1m_2Atx8bujtk7udNTF8oE6nbnXSHFtQJXmaqV3E';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Hash SHA-256 de contraseña admin ('admin123')
+    const ADMIN_PASS_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
+
+    let currentEditingId = null;
+    let listaSiniestrosLocal = [];
+
+    const camposSospechoso = [
+      { id: 'sexo', label: 'Sexo', opts: ['Hombre', 'Mujer'] },
+      { id: 'estatura', label: 'Estatura', opts: ['Baja', 'Media', 'Alta'] },
+      { id: 'complexion', label: 'Complexión', opts: ['Delgada', 'Media', 'Robusta'] },
+      { id: 'tez', label: 'Tez', opts: ['Clara', 'Morena', 'Oscura'] },
+      { id: 'cabello', label: 'Cabello', opts: ['Corto', 'Largo', 'Calvo', 'Otro'] },
+      { id: 'cabeza', label: 'Cabeza', opts: ['Gorra', 'Capucha', 'Pasamontañas', 'Ninguno'] },
+      { id: 'rostro', label: 'Rostro', opts: ['Cubrebocas', 'Lentes', 'Ninguno'] },
+      { id: 'prenda_sup', label: 'Prenda Sup.', opts: ['Playera', 'Camisa', 'Chamarra', 'Sudadera'] },
+      { id: 'pantalon', label: 'Pantalón', opts: ['Mezclilla', 'Short', 'Deportivo', 'Otro'] },
+      { id: 'calzado', label: 'Calzado', opts: ['Tenis', 'Botas', 'Sandalias', 'Otro'] },
+      { id: 'senas', label: 'Señas Part.', opts: ['Tatuaje', 'Cicatriz', 'Barba', 'Bigote'] },
+      { id: 'arma', label: 'Arma / Objeto', opts: ['Fuego', 'Blanca', 'Ninguna', 'Otra'] }
+    ];
+
+    function renderSospechosos() {
+      const container = document.getElementById('sospechosos-container');
+      let html = '';
+      for(let i = 1; i <= 4; i++) {
+        html += `<div id="sosp_tab_${i}" class="tab-content ${i===1?'active':''}">
+          <h4 style="color:var(--blue-primary); margin-bottom:10px;">Ficha Sospechoso ${i}</h4>
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="form-group"><label>Edad Aprox (Años):</label><input type="number" id="s${i}_edad"></div>
+            <div class="form-group"><label>Colores Vestimenta (Sup / Inf):</label><input type="text" id="s${i}_colores" placeholder="Ej. Azul / Negro"></div>
+          </div>
+          <div class="grid-2">`;
+        camposSospechoso.forEach(c => {
+          html += `<div class="form-group">
+            <label>${c.label}:</label>
+            <select id="s${i}_${c.id}">
+              <option value="--">-- Seleccionar --</option>
+              ${c.opts.map(o => `<option value="${o}">${o}</option>`).join('')}
+            </select>
+          </div>`;
+        });
+        html += `</div></div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function showTab(num) {
+      document.querySelectorAll('.tab-btn').forEach((b, idx) => b.classList.toggle('active', idx === num - 1));
+      document.querySelectorAll('.tab-content').forEach((c, idx) => c.classList.toggle('active', idx === num - 1));
+    }
+
+    function switchMainTab(tab) {
+      document.querySelectorAll('.nav-tab').forEach((b, idx) => b.classList.toggle('active', (idx === 0 && tab==='registro') || (idx === 1 && tab==='historial')));
+      document.getElementById('tab-registro').style.display = tab === 'registro' ? 'block' : 'none';
+      document.getElementById('tab-historial').style.display = tab === 'historial' ? 'block' : 'none';
+      if (tab === 'historial') cargarHistorial();
+    }
+
+    async function hashString(str) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function pedirClaveAdmin() {
+      const pass = prompt("Ingrese la contraseña de Administrador para esta acción:");
+      if (!pass) return false;
+      const hashed = await hashString(pass);
+      if (hashed === ADMIN_PASS_HASH) return true;
+      alert("Contraseña incorrecta.");
+      return false;
+    }
+
+    // EXTRAER DATOS DEL FORMULARIO
+    function obtenerPayloadFormulario() {
+      const sospechosos = [];
+      for (let i = 1; i <= 4; i++) {
+        const s = { edad: document.getElementById(`s${i}_edad`).value, colores: document.getElementById(`s${i}_colores`).value };
+        camposSospechoso.forEach(c => s[c.id] = document.getElementById(`s${i}_${c.id}`).value);
+        sospechosos.push(s);
+      }
+
+      return {
+        fecha: document.getElementById('fecha').value,
+        hora: document.getElementById('hora').value,
+        tienda: document.getElementById('tienda').value,
+        domicilio: document.getElementById('domicilio').value,
+        cruce: document.getElementById('cruce').value,
+        colonia: document.getElementById('colonia').value,
+        incidente: document.querySelector('input[name="incidente"]:checked').value,
+        cortes: {
+          c1f: parseFloat(document.getElementById('c1_f').value)||0,
+          c1d: parseFloat(document.getElementById('c1_d').value)||0,
+          c2f: parseFloat(document.getElementById('c2_f').value)||0,
+          c2d: parseFloat(document.getElementById('c2_d').value)||0
+        },
+        afectacion: {
+          efectivo: parseFloat(document.getElementById('af_efectivo').value)||0,
+          vinos: parseFloat(document.getElementById('af_vinos').value)||0,
+          cerveza: parseFloat(document.getElementById('af_cerveza').value)||0,
+          cigarros: parseFloat(document.getElementById('af_cigarros').value)||0,
+          meds: parseFloat(document.getElementById('af_meds').value)||0,
+          abarrotes: parseFloat(document.getElementById('af_abarrotes').value)||0,
+          ortopedia: parseFloat(document.getElementById('af_ortopedia').value)||0,
+          eqmed: parseFloat(document.getElementById('af_eqmed').value)||0,
+          otros: parseFloat(document.getElementById('af_otros').value)||0
+        },
+        empleados: {
+          e1: { nom: document.getElementById('emp1_nom').value, ape: document.getElementById('emp1_ape').value, edad: document.getElementById('emp1_edad').value, puesto: document.getElementById('emp1_puesto').value, tel: document.getElementById('emp1_tel').value },
+          e2: { nom: document.getElementById('emp2_nom').value, ape: document.getElementById('emp2_ape').value, edad: document.getElementById('emp2_edad').value, puesto: document.getElementById('emp2_puesto').value, tel: document.getElementById('emp2_tel').value }
+        },
+        hechos: {
+          lesionados: document.querySelector('input[name="lesionados"]:checked').value,
+          videos: document.querySelector('input[name="videos"]:checked').value,
+          desc: document.getElementById('descripcion_hechos').value
+        },
+        sospechosos
+      };
+    }
+
+    // GUARDAR EN SUPABASE Y GENERAR PDF
+    async function guardarYGenerarPDF() {
+      const payload = obtenerPayloadFormulario();
+
+      if (!payload.fecha || !payload.tienda) {
+        alert("Por favor complete los campos requeridos de fecha y tienda.");
+        return;
+      }
+
+      try {
+        if (currentEditingId) {
+          const { error } = await _supabase.from('siniestros').update(payload).eq('id', currentEditingId);
+          if (error) throw error;
+          alert("Reporte actualizado correctamente en la nube.");
+          currentEditingId = null;
+        } else {
+          const { error } = await _supabase.from('siniestros').insert([payload]);
+          if (error) throw error;
+          alert("Reporte guardado exitosamente en la nube.");
+        }
+        
+        generarPDF(payload);
+      } catch (err) {
+        alert("Error al conectar con la base de datos: " + err.message);
+      }
+    }
+
+    function generarPDF(payload) {
+      document.getElementById('p1_fecha').innerText = payload.fecha;
+      document.getElementById('p1_hora').innerText = payload.hora;
+      document.getElementById('p1_tienda').innerText = payload.tienda;
+      document.getElementById('p1_domicilio').innerText = payload.domicilio;
+      document.getElementById('p1_colonia').innerText = payload.colonia;
+      document.getElementById('p1_cruce').innerText = payload.cruce;
+
+      ['asalto','robo','extorsion','danos'].forEach(k => {
+        document.getElementById(`p1_inc_${k}`).innerText = (payload.incidente.toLowerCase().includes(k)) ? 'X' : '';
+      });
+
+      document.getElementById('p1_c1f').innerText = payload.cortes.c1f.toFixed(2);
+      document.getElementById('p1_c1d').innerText = payload.cortes.c1d.toFixed(2);
+      document.getElementById('p1_c2f').innerText = payload.cortes.c2f.toFixed(2);
+      document.getElementById('p1_c2d').innerText = payload.cortes.c2d.toFixed(2);
+      document.getElementById('p1_total_cortes').innerText = (payload.cortes.c1d + payload.cortes.c2d).toFixed(2);
+
+      document.getElementById('p1_af_ef').innerText = payload.afectacion.efectivo.toFixed(2);
+      document.getElementById('p1_af_vi').innerText = payload.afectacion.vinos.toFixed(2);
+      document.getElementById('p1_af_ce').innerText = payload.afectacion.cerveza.toFixed(2);
+      document.getElementById('p1_af_ci').innerText = payload.afectacion.cigarros.toFixed(2);
+      document.getElementById('p1_af_me').innerText = payload.afectacion.meds.toFixed(2);
+      document.getElementById('p1_af_ab').innerText = payload.afectacion.abarrotes.toFixed(2);
+      document.getElementById('p1_af_or').innerText = payload.afectacion.ortopedia.toFixed(2);
+      document.getElementById('p1_af_eq').innerText = payload.afectacion.eqmed.toFixed(2);
+      document.getElementById('p1_af_ot').innerText = payload.afectacion.otros.toFixed(2);
+
+      document.getElementById('p1_e1_nom').innerText = `${payload.empleados.e1.nom} ${payload.empleados.e1.ape}`;
+      document.getElementById('p1_e1_edad').innerText = payload.empleados.e1.edad;
+      document.getElementById('p1_e1_puesto').innerText = payload.empleados.e1.puesto;
+      document.getElementById('p1_e1_tel').innerText = payload.empleados.e1.tel;
+
+      document.getElementById('p1_e2_nom').innerText = `${payload.empleados.e2.nom} ${payload.empleados.e2.ape}`;
+      document.getElementById('p1_e2_edad').innerText = payload.empleados.e2.edad;
+      document.getElementById('p1_e2_puesto').innerText = payload.empleados.e2.puesto;
+      document.getElementById('p1_e2_tel').innerText = payload.empleados.e2.tel;
+
+      document.getElementById('p1_lesionados_txt').innerText = payload.hechos.lesionados;
+      document.getElementById('p1_videos_txt').innerText = payload.hechos.videos;
+      document.getElementById('p1_hechos_desc').innerText = payload.hechos.desc;
+
+      let sospHtml = '';
+      payload.sospechosos.forEach((s, idx) => {
+        sospHtml += `
+        <table class="pdf-table" style="margin-bottom:8px;">
+          <tr><th colspan="4">SOSPECHOSO ${idx + 1}</th></tr>
+          <tr><td><b>Edad Aprox:</b> ${s.edad || '--'} años</td><td><b>Sexo:</b> ${s.sexo}</td><td><b>Estatura:</b> ${s.estatura}</td><td><b>Complexión:</b> ${s.complexion}</td></tr>
+          <tr><td><b>Tez:</b> ${s.tez}</td><td><b>Cabello:</b> ${s.cabello}</td><td><b>Cabeza:</b> ${s.cabeza}</td><td><b>Rostro:</b> ${s.rostro}</td></tr>
+          <tr><td><b>Prenda Sup:</b> ${s.prenda_sup}</td><td><b>Pantalón:</b> ${s.pantalon}</td><td><b>Calzado:</b> ${s.calzado}</td><td><b>Colores:</b> ${s.colores || '--'}</td></tr>
+          <tr><td colspan="2"><b>Señas Part:</b> ${s.senas}</td><td colspan="2"><b>Arma / Objeto:</b> ${s.arma}</td></tr>
+        </table>`;
+      });
+      document.getElementById('pdf-sospechosos-tables').innerHTML = sospHtml;
+
+      const pdfContainer = document.getElementById('pdf-template');
+      pdfContainer.style.display = 'block';
+
+      const opt = {
+        margin: 0,
+        filename: `Reporte_Siniestro_${payload.tienda}_${payload.fecha}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(pdfContainer).save().then(() => {
+        pdfContainer.style.display = 'none';
+      });
+    }
+
+    // CARGAR HISTORIAL DE SUPABASE
+    async function cargarHistorial() {
+      const tbody = document.getElementById('tabla-historial-body');
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Cargando siniestros...</td></tr>`;
+
+      const { data, error } = await _supabase.from('siniestros').select('*').order('id', { ascending: false });
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Error al cargar datos.</td></tr>`;
+        return;
+      }
+
+      listaSiniestrosLocal = data;
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No hay reportes registrados aún.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(item => {
+        const af = item.afectacion || {};
+        const totalAf = Object.values(af).reduce((acc, v) => acc + (parseFloat(v)||0), 0);
+        return `
+          <tr>
+            <td>${item.fecha || '--'}</td>
+            <td>${item.hora || '--'}</td>
+            <td><b>${item.tienda || '--'}</b></td>
+            <td>${item.incidente || '--'}</td>
+            <td>$ ${totalAf.toFixed(2)}</td>
+            <td>
+              <button class="btn-icon btn-view" title="Ver / Descargar PDF" onclick="reimprimirPDF(${item.id})">👁️ PDF</button>
+              <button class="btn-icon btn-edit" title="Editar Registro" onclick="cargarParaEditar(${item.id})">✏️ Editar</button>
+              <button class="btn-icon btn-delete" title="Eliminar Registro" onclick="eliminarSiniestro(${item.id})">🗑️ Eliminar</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function reimprimirPDF(id) {
+      const item = listaSiniestrosLocal.find(s => s.id === id);
+      if (item) generarPDF(item);
+    }
+
+    // CARGAR DATOS PARA EDICIÓN (PROTEGIDO)
+    async function cargarParaEditar(id) {
+      const esAdmin = await pedirClaveAdmin();
+      if (!esAdmin) return;
+
+      const item = listaSiniestrosLocal.find(s => s.id === id);
+      if (!item) return;
+
+      currentEditingId = id;
+      document.getElementById('fecha').value = item.fecha || '';
+      document.getElementById('hora').value = item.hora || '';
+      document.getElementById('tienda').value = item.tienda || '';
+      document.getElementById('domicilio').value = item.domicilio || '';
+      document.getElementById('cruce').value = item.cruce || '';
+      document.getElementById('colonia').value = item.colonia || '';
+
+      if(item.incidente) {
+        const radio = document.querySelector(`input[name="incidente"][value="${item.incidente}"]`);
+        if (radio) radio.checked = true;
+      }
+
+      if(item.cortes) {
+        document.getElementById('c1_f').value = item.cortes.c1f || 0;
+        document.getElementById('c1_d').value = item.cortes.c1d || 0;
+        document.getElementById('c2_f').value = item.cortes.c2f || 0;
+        document.getElementById('c2_d').value = item.cortes.c2d || 0;
+      }
+
+      if(item.afectacion) {
+        document.getElementById('af_efectivo').value = item.afectacion.efectivo || 0;
+        document.getElementById('af_vinos').value = item.afectacion.vinos || 0;
+        document.getElementById('af_cerveza').value = item.afectacion.cerveza || 0;
+        document.getElementById('af_cigarros').value = item.afectacion.cigarros || 0;
+        document.getElementById('af_meds').value = item.afectacion.meds || 0;
+        document.getElementById('af_abarrotes').value = item.afectacion.abarrotes || 0;
+        document.getElementById('af_ortopedia').value = item.afectacion.ortopedia || 0;
+        document.getElementById('af_eqmed').value = item.afectacion.eqmed || 0;
+        document.getElementById('af_otros').value = item.afectacion.otros || 0;
+      }
+
+      if(item.empleados) {
+        document.getElementById('emp1_nom').value = item.empleados.e1?.nom || '';
+        document.getElementById('emp1_ape').value = item.empleados.e1?.ape || '';
+        document.getElementById('emp1_edad').value = item.empleados.e1?.edad || '';
+        document.getElementById('emp1_puesto').value = item.empleados.e1?.puesto || '';
+        document.getElementById('emp1_tel').value = item.empleados.e1?.tel || '';
+
+        document.getElementById('emp2_nom').value = item.empleados.e2?.nom || '';
+        document.getElementById('emp2_ape').value = item.empleados.e2?.ape || '';
+        document.getElementById('emp2_edad').value = item.empleados.e2?.edad || '';
+        document.getElementById('emp2_puesto').value = item.empleados.e2?.puesto || '';
+        document.getElementById('emp2_tel').value = item.empleados.e2?.tel || '';
+      }
+
+      if(item.hechos) {
+        document.getElementById('descripcion_hechos').value = item.hechos.desc || '';
+      }
+
+      if(item.sospechosos) {
+        item.sospechosos.forEach((s, idx) => {
+          const i = idx + 1;
+          document.getElementById(`s${i}_edad`).value = s.edad || '';
+          document.getElementById(`s${i}_colores`).value = s.colores || '';
+          camposSospechoso.forEach(c => {
+            if(document.getElementById(`s${i}_${c.id}`)) {
+              document.getElementById(`s${i}_${c.id}`).value = s[c.id] || '--';
+            }
+          });
+        });
+      }
+
+      switchMainTab('registro');
+      alert(`Editando reporte #${id}. Al terminar de modificar, presiona el botón de Guardar.`);
+    }
+
+    // ELIMINAR REGISTRO (PROTEGIDO)
+    async function eliminarSiniestro(id) {
+      const esAdmin = await pedirClaveAdmin();
+      if (!esAdmin) return;
+
+      if (!confirm("¿Está seguro de que desea eliminar este reporte permanentemente?")) return;
+
+      const { error } = await _supabase.from('siniestros').delete().eq('id', id);
+      if (error) {
+        alert("Error al eliminar: " + error.message);
+      } else {
+        alert("Reporte eliminado con éxito.");
+        cargarHistorial();
+      }
+    }
+
+    // EXPORTAR A EXCEL CSV
+    function exportarExcel() {
+      if (listaSiniestrosLocal.length === 0) {
+        alert("No hay información para exportar.");
+        return;
+      }
+
+      let csv = 'ID,Fecha,Hora,Tienda,Domicilio,Colonia,Incidente,Afectación_Efectivo,Afectación_Vinos,Afectación_Total\n';
+      listaSiniestrosLocal.forEach(item => {
+        const af = item.afectacion || {};
+        const totalAf = Object.values(af).reduce((acc, v) => acc + (parseFloat(v)||0), 0);
+        csv += `"${item.id}","${item.fecha}","${item.hora}","${item.tienda}","${item.domicilio}","${item.colonia}","${item.incidente}","${af.efectivo||0}","${af.vinos||0}","${totalAf}"\n`;
+      });
+
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `Reportes_Siniestros_FARSANMAR_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Inicialización al cargar la página
+    renderSospechosos();
+  </script>
+</body>
+</html>
