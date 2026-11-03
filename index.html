@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FARSANMAR - Reporte de Siniestro</title>
-  <!-- Librería Supabase JS -->
+  <!-- Librería Supabase JS oficial v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Librería HTML2PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Librería pdf-lib para rellenar PDFs vectoriales sin perder calidad -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
   <style>
     :root {
       --blue-primary: #006AD7;
@@ -163,27 +164,6 @@
     .btn-view { background: #9AD9EA; color: #21277B; }
     .btn-edit { background: #FFC107; color: #000; }
     .btn-delete { background: #DC3545; color: white; }
-
-    /* ESTILOS DEL PDF OCULTO */
-    #pdf-template { display: none; }
-    .pdf-page {
-      width: 210mm;
-      min-height: 297mm;
-      padding: 15mm;
-      background: white;
-      color: #000;
-      font-family: Arial, sans-serif;
-      font-size: 10pt;
-      box-sizing: border-box;
-    }
-    .pdf-header { text-align: center; border-bottom: 2px solid #21277B; padding-bottom: 5px; margin-bottom: 10px; }
-    .pdf-header h2 { color: #21277B; font-size: 16pt; margin: 0; }
-    .pdf-header h4 { color: #006AD7; font-size: 11pt; margin: 2px 0 0 0; }
-    .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    .pdf-table th, .pdf-table td { border: 1px solid #5F83B1; padding: 4px 6px; font-size: 8.5pt; }
-    .pdf-table th { background-color: #21277B; color: white; text-align: left; }
-    .pdf-table .sub-th { background-color: #9AD9EA; color: #21277B; font-weight: bold; }
-    .box-check { display: inline-block; width: 10px; height: 10px; border: 1px solid #000; text-align: center; line-height: 9px; font-size: 8pt; margin-right: 3px; }
   </style>
 </head>
 <body>
@@ -359,70 +339,12 @@
     </div>
   </div>
 
-  <!-- PLANTILLA PDF IMPRESION OCULTA -->
-  <div id="pdf-template">
-    <div class="pdf-page" id="pdf-page-1">
-      <div class="pdf-header">
-        <h2>FARSANMAR</h2>
-        <h4>REPORTE DE SINIESTRO - FORMATO OPERATIVO PREVENCIÓN DE PÉRDIDAS</h4>
-      </div>
-      <table class="pdf-table">
-        <tr><td><b>FECHA:</b> <span id="p1_fecha"></span></td><td><b>HORA:</b> <span id="p1_hora"></span></td><td><b>TIENDA:</b> <span id="p1_tienda"></span></td></tr>
-        <tr><td colspan="2"><b>DOMICILIO:</b> <span id="p1_domicilio"></span></td><td><b>COLONIA:</b> <span id="p1_colonia"></span></td></tr>
-        <tr><td colspan="3"><b>CRUCE DE CALLES:</b> <span id="p1_cruce"></span></td></tr>
-      </table>
-      <table class="pdf-table">
-        <tr><th colspan="4">TIPO DE INCIDENTE</th></tr>
-        <tr>
-          <td><span class="box-check" id="p1_inc_asalto"></span> Asalto</td>
-          <td><span class="box-check" id="p1_inc_robo"></span> Robo Sim.</td>
-          <td><span class="box-check" id="p1_inc_extorsion"></span> Extorsión</td>
-          <td><span class="box-check" id="p1_inc_danos"></span> Daños</td>
-        </tr>
-      </table>
-      <table class="pdf-table">
-        <tr><th colspan="3">CORTES DE CAJA</th></tr>
-        <tr class="sub-th"><td>N° DE CORTE</td><td>MONTO DE FONDO</td><td>DINERO EN EL CORTE</td></tr>
-        <tr><td>Corte 1</td><td>$ <span id="p1_c1f"></span></td><td>$ <span id="p1_c1d"></span></td></tr>
-        <tr><td>Corte 2</td><td>$ <span id="p1_c2f"></span></td><td>$ <span id="p1_c2d"></span></td></tr>
-        <tr><td colspan="2"><b>TOTAL DE CORTES</b></td><td><b>$ <span id="p1_total_cortes"></span></b></td></tr>
-      </table>
-      <table class="pdf-table">
-        <tr><th colspan="6">AFECTACIÓN DE MERCANCÍA / VALORES</th></tr>
-        <tr><td><b>Efectivo:</b> $ <span id="p1_af_ef"></span></td><td><b>Vinos:</b> $ <span id="p1_af_vi"></span></td><td><b>Cerveza:</b> $ <span id="p1_af_ce"></span></td></tr>
-        <tr><td><b>Cigarros:</b> $ <span id="p1_af_ci"></span></td><td><b>Medicamentos:</b> $ <span id="p1_af_me"></span></td><td><b>Abarrotes:</b> $ <span id="p1_af_ab"></span></td></tr>
-        <tr><td><b>Ortopedia:</b> $ <span id="p1_af_or"></span></td><td><b>Equipo Méd.:</b> $ <span id="p1_af_eq"></span></td><td><b>Otros:</b> $ <span id="p1_af_ot"></span></td></tr>
-      </table>
-      <table class="pdf-table">
-        <tr><th colspan="2">EMPLEADOS PRESENTES</th></tr>
-        <tr class="sub-th"><td>EMPLEADO 1</td><td>EMPLEADO 2</td></tr>
-        <tr><td><b>Nombre:</b> <span id="p1_e1_nom"></span></td><td><b>Nombre:</b> <span id="p1_e2_nom"></span></td></tr>
-        <tr><td><b>Edad:</b> <span id="p1_e1_edad"></span> | <b>Puesto:</b> <span id="p1_e1_puesto"></span></td><td><b>Edad:</b> <span id="p1_e2_edad"></span> | <b>Puesto:</b> <span id="p1_e2_puesto"></span></td></tr>
-        <tr><td><b>Teléfono:</b> <span id="p1_e1_tel"></span></td><td><b>Teléfono:</b> <span id="p1_e2_tel"></span></td></tr>
-      </table>
-      <table class="pdf-table">
-        <tr><th>DECLARACIÓN Y DESCRIPCIÓN DE LOS HECHOS</th></tr>
-        <tr><td><b>LESIONADOS:</b> <span id="p1_lesionados_txt"></span> &nbsp;&nbsp;|&nbsp;&nbsp; <b>ANEXA VIDEOS:</b> <span id="p1_videos_txt"></span></td></tr>
-        <tr><td style="height: 110px; vertical-align: top; padding-top: 6px;" id="p1_hechos_desc"></td></tr>
-      </table>
-    </div>
-    <div class="pdf-page" id="pdf-page-2">
-      <div class="pdf-header">
-        <h2>FARSANMAR</h2>
-        <h4>DESCRIPCIÓN DE SOSPECHOSOS (REVERSO)</h4>
-      </div>
-      <div id="pdf-sospechosos-tables"></div>
-    </div>
-  </div>
-
   <script>
-    // NUEVAS CREDENCIALES CONFIGURADAS
+    // CREDENCIALES CONFIGURADAS
     const SUPABASE_URL = 'https://oussvhvomwrndtufzfih.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91c3N2aHZvbXdybmR0dWZ6ZmloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MzAwMjcsImV4cCI6MjEwMjMwNjAyN30.2zF0BgBxuz7xr_lSVlcB6eGAZqn6_e_0cL7zBJqCaqc';
     
-    // Inicialización del cliente de Supabase
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
     const ADMIN_PASS_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
 
     let currentEditingId = null;
@@ -560,82 +482,108 @@
           alert("Reporte guardado exitosamente en la nube.");
         }
         
-        generarPDF(payload);
+        await generarPDFVectorial(payload);
       } catch (err) {
         console.error(err);
-        alert("Error al conectar con la base de datos: " + err.message);
+        alert("Error al guardar o generar PDF: " + err.message);
       }
     }
 
-    function generarPDF(payload) {
-      document.getElementById('p1_fecha').innerText = payload.fecha;
-      document.getElementById('p1_hora').innerText = payload.hora;
-      document.getElementById('p1_tienda').innerText = payload.tienda;
-      document.getElementById('p1_domicilio').innerText = payload.domicilio;
-      document.getElementById('p1_colonia').innerText = payload.colonia;
-      document.getElementById('p1_cruce').innerText = payload.cruce;
+    // FUNCIÓN QUE DIBUJA SOBRE LA PLANTILLA NATIVA SIN PERDER CALIDAD
+    async function generarPDFVectorial(p) {
+      try {
+        // Cargar archivo plantilla.pdf
+        const response = await fetch('./plantilla.pdf');
+        if (!response.ok) {
+          throw new Error("No se encontró el archivo 'plantilla.pdf' en el servidor.");
+        }
+        const existingPdfBytes = await response.arrayBuffer();
 
-      ['asalto','robo','extorsion','danos'].forEach(k => {
-        document.getElementById(`p1_inc_${k}`).innerText = (payload.incidente.toLowerCase().includes(k)) ? 'X' : '';
-      });
+        // Cargar documento con PDFLib
+        const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+        const pages = pdfDoc.getPages();
+        const p1 = pages[0];
+        const p2 = pages[1];
+        const font = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        const color = PDFLib.rgb(0, 0, 0); // Texto en negro nítido
 
-      document.getElementById('p1_c1f').innerText = payload.cortes.c1f.toFixed(2);
-      document.getElementById('p1_c1d').innerText = payload.cortes.c1d.toFixed(2);
-      document.getElementById('p1_c2f').innerText = payload.cortes.c2f.toFixed(2);
-      document.getElementById('p1_c2d').innerText = payload.cortes.c2d.toFixed(2);
-      document.getElementById('p1_total_cortes').innerText = (payload.cortes.c1d + payload.cortes.c2d).toFixed(2);
+        // HOJA 1: GENERALES Y AFECTACIÓN
+        p1.drawText(p.fecha || '', { x: 90, y: 720, size: 9, font, color });
+        p1.drawText(p.hora || '', { x: 260, y: 720, size: 9, font, color });
+        p1.drawText(p.tienda || '', { x: 380, y: 720, size: 9, font, color });
+        p1.drawText(p.domicilio || '', { x: 110, y: 698, size: 8, font, color });
+        p1.drawText(p.cruce || '', { x: 110, y: 676, size: 8, font, color });
+        p1.drawText(p.colonia || '', { x: 400, y: 698, size: 8, font, color });
 
-      document.getElementById('p1_af_ef').innerText = payload.afectacion.efectivo.toFixed(2);
-      document.getElementById('p1_af_vi').innerText = payload.afectacion.vinos.toFixed(2);
-      document.getElementById('p1_af_ce').innerText = payload.afectacion.cerveza.toFixed(2);
-      document.getElementById('p1_af_ci').innerText = payload.afectacion.cigarros.toFixed(2);
-      document.getElementById('p1_af_me').innerText = payload.afectacion.meds.toFixed(2);
-      document.getElementById('p1_af_ab').innerText = payload.afectacion.abarrotes.toFixed(2);
-      document.getElementById('p1_af_or').innerText = payload.afectacion.ortopedia.toFixed(2);
-      document.getElementById('p1_af_eq').innerText = payload.afectacion.eqmed.toFixed(2);
-      document.getElementById('p1_af_ot').innerText = payload.afectacion.otros.toFixed(2);
+        // MARCAS DE CHECKBOX (TIPO INCIDENTE)
+        if (p.incidente.includes('Asalto')) p1.drawText('X', { x: 125, y: 635, size: 10, font, color });
+        if (p.incidente.includes('Robo')) p1.drawText('X', { x: 215, y: 635, size: 10, font, color });
+        if (p.incidente.includes('Extorsión')) p1.drawText('X', { x: 310, y: 635, size: 10, font, color });
+        if (p.incidente.includes('Daños')) p1.drawText('X', { x: 410, y: 635, size: 10, font, color });
 
-      document.getElementById('p1_e1_nom').innerText = `${payload.empleados.e1.nom} ${payload.empleados.e1.ape}`;
-      document.getElementById('p1_e1_edad').innerText = payload.empleados.e1.edad;
-      document.getElementById('p1_e1_puesto').innerText = payload.empleados.e1.puesto;
-      document.getElementById('p1_e1_tel').innerText = payload.empleados.e1.tel;
+        // CORTES DE CAJA
+        p1.drawText(p.cortes.c1f.toFixed(2), { x: 220, y: 575, size: 9, font, color });
+        p1.drawText(p.cortes.c1d.toFixed(2), { x: 410, y: 575, size: 9, font, color });
+        p1.drawText(p.cortes.c2f.toFixed(2), { x: 220, y: 555, size: 9, font, color });
+        p1.drawText(p.cortes.c2d.toFixed(2), { x: 410, y: 555, size: 9, font, color });
+        p1.drawText((p.cortes.c1d + p.cortes.c2d).toFixed(2), { x: 410, y: 535, size: 9, font, color });
 
-      document.getElementById('p1_e2_nom').innerText = `${payload.empleados.e2.nom} ${payload.empleados.e2.ape}`;
-      document.getElementById('p1_e2_edad').innerText = payload.empleados.e2.edad;
-      document.getElementById('p1_e2_puesto').innerText = payload.empleados.e2.puesto;
-      document.getElementById('p1_e2_tel').innerText = payload.empleados.e2.tel;
+        // AFECTACIÓN DE MERCANCÍA
+        p1.drawText(p.afectacion.efectivo.toFixed(2), { x: 130, y: 480, size: 8, font, color });
+        p1.drawText(p.afectacion.vinos.toFixed(2), { x: 300, y: 480, size: 8, font, color });
+        p1.drawText(p.afectacion.cerveza.toFixed(2), { x: 470, y: 480, size: 8, font, color });
+        p1.drawText(p.afectacion.cigarros.toFixed(2), { x: 130, y: 458, size: 8, font, color });
+        p1.drawText(p.afectacion.meds.toFixed(2), { x: 300, y: 458, size: 8, font, color });
+        p1.drawText(p.afectacion.abarrotes.toFixed(2), { x: 470, y: 458, size: 8, font, color });
+        p1.drawText(p.afectacion.ortopedia.toFixed(2), { x: 130, y: 436, size: 8, font, color });
+        p1.drawText(p.afectacion.eqmed.toFixed(2), { x: 300, y: 436, size: 8, font, color });
+        p1.drawText(p.afectacion.otros.toFixed(2), { x: 470, y: 436, size: 8, font, color });
 
-      document.getElementById('p1_lesionados_txt').innerText = payload.hechos.lesionados;
-      document.getElementById('p1_videos_txt').innerText = payload.hechos.videos;
-      document.getElementById('p1_hechos_desc').innerText = payload.hechos.desc;
+        // EMPLEADOS PRESENTES
+        p1.drawText(`${p.empleados.e1.nom} ${p.empleados.e1.ape}`, { x: 110, y: 375, size: 8, font, color });
+        p1.drawText(p.empleados.e1.edad, { x: 110, y: 355, size: 8, font, color });
+        p1.drawText(p.empleados.e1.puesto, { x: 200, y: 355, size: 8, font, color });
+        p1.drawText(p.empleados.e1.tel, { x: 110, y: 335, size: 8, font, color });
 
-      let sospHtml = '';
-      payload.sospechosos.forEach((s, idx) => {
-        sospHtml += `
-        <table class="pdf-table" style="margin-bottom:8px;">
-          <tr><th colspan="4">SOSPECHOSO ${idx + 1}</th></tr>
-          <tr><td><b>Edad Aprox:</b> ${s.edad || '--'} años</td><td><b>Sexo:</b> ${s.sexo}</td><td><b>Estatura:</b> ${s.estatura}</td><td><b>Complexión:</b> ${s.complexion}</td></tr>
-          <tr><td><b>Tez:</b> ${s.tez}</td><td><b>Cabello:</b> ${s.cabello}</td><td><b>Cabeza:</b> ${s.cabeza}</td><td><b>Rostro:</b> ${s.rostro}</td></tr>
-          <tr><td><b>Prenda Sup:</b> ${s.prenda_sup}</td><td><b>Pantalón:</b> ${s.pantalon}</td><td><b>Calzado:</b> ${s.calzado}</td><td><b>Colores:</b> ${s.colores || '--'}</td></tr>
-          <tr><td colspan="2"><b>Señas Part:</b> ${s.senas}</td><td colspan="2"><b>Arma / Objeto:</b> ${s.arma}</td></tr>
-        </table>`;
-      });
-      document.getElementById('pdf-sospechosos-tables').innerHTML = sospHtml;
+        p1.drawText(`${p.empleados.e2.nom} ${p.empleados.e2.ape}`, { x: 380, y: 375, size: 8, font, color });
+        p1.drawText(p.empleados.e2.edad, { x: 380, y: 355, size: 8, font, color });
+        p1.drawText(p.empleados.e2.puesto, { x: 470, y: 355, size: 8, font, color });
+        p1.drawText(p.empleados.e2.tel, { x: 380, y: 335, size: 8, font, color });
 
-      const pdfContainer = document.getElementById('pdf-template');
-      pdfContainer.style.display = 'block';
+        // DESCRIPCIÓN DE HECHOS
+        p1.drawText(p.hechos.lesionados, { x: 200, y: 280, size: 8, font, color });
+        p1.drawText(p.hechos.videos, { x: 420, y: 280, size: 8, font, color });
+        
+        // Multi-línea para descripción
+        const descText = p.hechos.desc || '';
+        p1.drawText(descText.substring(0, 100), { x: 50, y: 240, size: 8, font, color });
+        if (descText.length > 100) p1.drawText(descText.substring(100, 200), { x: 50, y: 228, size: 8, font, color });
 
-      const opt = {
-        margin: 0,
-        filename: `Reporte_Siniestro_${payload.tienda}_${payload.fecha}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
+        // HOJA 2: SOSPECHOSOS
+        if (p2 && p.sospechosos) {
+          const yStart = [650, 500, 350, 200];
+          p.sospechosos.forEach((s, idx) => {
+            if (idx < 4) {
+              const y = yStart[idx];
+              p2.drawText(s.edad || '--', { x: 120, y: y, size: 8, font, color });
+              p2.drawText(s.sexo || '--', { x: 220, y: y, size: 8, font, color });
+              p2.drawText(s.colores || '--', { x: 380, y: y, size: 8, font, color });
+              p2.drawText(`Prenda: ${s.prenda_sup} | Pantalón: ${s.pantalon}`, { x: 60, y: y - 20, size: 8, font, color });
+            }
+          });
+        }
 
-      html2pdf().set(opt).from(pdfContainer).save().then(() => {
-        pdfContainer.style.display = 'none';
-      });
+        // DESCARGAR ARCHIVO PDF VECTORIAL PERFECTO
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Reporte_Siniestro_${p.tienda}_${p.fecha}.pdf`;
+        link.click();
+
+      } catch (err) {
+        alert("Error al cargar la plantilla PDF vectorial: " + err.message + ". Verifique que subió el archivo 'plantilla.pdf' a la raíz de la app.");
+      }
     }
 
     async function cargarHistorial() {
@@ -680,7 +628,7 @@
 
     function reimprimirPDF(id) {
       const item = listaSiniestrosLocal.find(s => s.id === id);
-      if (item) generarPDF(item);
+      if (item) generarPDFVectorial(item);
     }
 
     async function cargarParaEditar(id) {
