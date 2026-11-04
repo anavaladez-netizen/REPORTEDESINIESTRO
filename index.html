@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FARSANMAR - Reporte de Siniestro</title>
-  <!-- Librería Supabase JS oficial v2 -->
+  <!-- Supabase JS oficial v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Librería pdf-lib para rellenar PDFs vectoriales sin perder calidad -->
+  <!-- pdf-lib para llenado vectorial nativo de PDFs -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <style>
@@ -137,7 +137,6 @@
     }
     .btn-submit:hover { background: var(--blue-primary); }
 
-    /* TABLA HISTORIAL */
     table.historial-table {
       width: 100%;
       border-collapse: collapse;
@@ -340,7 +339,6 @@
   </div>
 
   <script>
-    // CREDENCIALES CONFIGURADAS
     const SUPABASE_URL = 'https://oussvhvomwrndtufzfih.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91c3N2aHZvbXdybmR0dWZ6ZmloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3MzAwMjcsImV4cCI6MjEwMjMwNjAyN30.2zF0BgBxuz7xr_lSVlcB6eGAZqn6_e_0cL7zBJqCaqc';
     
@@ -489,91 +487,97 @@
       }
     }
 
-    // FUNCIÓN QUE DIBUJA SOBRE LA PLANTILLA NATIVA SIN PERDER CALIDAD
+    // FUNCIÓN DE SOBREESCRITURA CON COORDENADAS AJUSTADAS AL MILÍMETRO
     async function generarPDFVectorial(p) {
       try {
-        // Cargar archivo plantilla.pdf
         const response = await fetch('./plantilla.pdf');
         if (!response.ok) {
-          throw new Error("No se encontró el archivo 'plantilla.pdf' en el servidor.");
+          throw new Error("No se encontró 'plantilla.pdf' en el servidor.");
         }
         const existingPdfBytes = await response.arrayBuffer();
 
-        // Cargar documento con PDFLib
         const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
         const pages = pdfDoc.getPages();
         const p1 = pages[0];
         const p2 = pages[1];
         const font = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-        const color = PDFLib.rgb(0, 0, 0); // Texto en negro nítido
+        const color = PDFLib.rgb(0, 0, 0);
 
-        // HOJA 1: GENERALES Y AFECTACIÓN
-        p1.drawText(p.fecha || '', { x: 90, y: 720, size: 9, font, color });
-        p1.drawText(p.hora || '', { x: 260, y: 720, size: 9, font, color });
-        p1.drawText(p.tienda || '', { x: 380, y: 720, size: 9, font, color });
-        p1.drawText(p.domicilio || '', { x: 110, y: 698, size: 8, font, color });
-        p1.drawText(p.cruce || '', { x: 110, y: 676, size: 8, font, color });
-        p1.drawText(p.colonia || '', { x: 400, y: 698, size: 8, font, color });
+        // ----------------------------------------------------
+        // HOJA 1: GENERALES, TABLAS Y CASILLAS
+        // ----------------------------------------------------
+        p1.drawText(p.fecha || '', { x: 80, y: 708, size: 8, font, color });
+        p1.drawText(p.hora || '', { x: 250, y: 708, size: 8, font, color });
+        p1.drawText(p.tienda || '', { x: 380, y: 708, size: 8, font, color });
+        
+        p1.drawText(p.domicilio || '', { x: 110, y: 686, size: 8, font, color });
+        p1.drawText(p.colonia || '', { x: 400, y: 686, size: 8, font, color });
+        p1.drawText(p.cruce || '', { x: 140, y: 664, size: 8, font, color });
 
-        // MARCAS DE CHECKBOX (TIPO INCIDENTE)
-        if (p.incidente.includes('Asalto')) p1.drawText('X', { x: 125, y: 635, size: 10, font, color });
-        if (p.incidente.includes('Robo')) p1.drawText('X', { x: 215, y: 635, size: 10, font, color });
-        if (p.incidente.includes('Extorsión')) p1.drawText('X', { x: 310, y: 635, size: 10, font, color });
-        if (p.incidente.includes('Daños')) p1.drawText('X', { x: 410, y: 635, size: 10, font, color });
+        // TIPO DE INCIDENTE
+        if (p.incidente.includes('Asalto')) p1.drawText('X', { x: 85, y: 628, size: 9, font, color });
+        if (p.incidente.includes('Robo')) p1.drawText('X', { x: 175, y: 628, size: 9, font, color });
+        if (p.incidente.includes('Extorsión')) p1.drawText('X', { x: 275, y: 628, size: 9, font, color });
+        if (p.incidente.includes('Daños')) p1.drawText('X', { x: 365, y: 628, size: 9, font, color });
 
         // CORTES DE CAJA
-        p1.drawText(p.cortes.c1f.toFixed(2), { x: 220, y: 575, size: 9, font, color });
-        p1.drawText(p.cortes.c1d.toFixed(2), { x: 410, y: 575, size: 9, font, color });
-        p1.drawText(p.cortes.c2f.toFixed(2), { x: 220, y: 555, size: 9, font, color });
-        p1.drawText(p.cortes.c2d.toFixed(2), { x: 410, y: 555, size: 9, font, color });
-        p1.drawText((p.cortes.c1d + p.cortes.c2d).toFixed(2), { x: 410, y: 535, size: 9, font, color });
+        p1.drawText(p.cortes.c1f.toFixed(2), { x: 230, y: 572, size: 8, font, color });
+        p1.drawText(p.cortes.c1d.toFixed(2), { x: 420, y: 572, size: 8, font, color });
+        p1.drawText(p.cortes.c2f.toFixed(2), { x: 230, y: 550, size: 8, font, color });
+        p1.drawText(p.cortes.c2d.toFixed(2), { x: 420, y: 550, size: 8, font, color });
+        p1.drawText((p.cortes.c1d + p.cortes.c2d).toFixed(2), { x: 420, y: 512, size: 8, font, color });
 
         // AFECTACIÓN DE MERCANCÍA
-        p1.drawText(p.afectacion.efectivo.toFixed(2), { x: 130, y: 480, size: 8, font, color });
-        p1.drawText(p.afectacion.vinos.toFixed(2), { x: 300, y: 480, size: 8, font, color });
-        p1.drawText(p.afectacion.cerveza.toFixed(2), { x: 470, y: 480, size: 8, font, color });
-        p1.drawText(p.afectacion.cigarros.toFixed(2), { x: 130, y: 458, size: 8, font, color });
-        p1.drawText(p.afectacion.meds.toFixed(2), { x: 300, y: 458, size: 8, font, color });
-        p1.drawText(p.afectacion.abarrotes.toFixed(2), { x: 470, y: 458, size: 8, font, color });
-        p1.drawText(p.afectacion.ortopedia.toFixed(2), { x: 130, y: 436, size: 8, font, color });
-        p1.drawText(p.afectacion.eqmed.toFixed(2), { x: 300, y: 436, size: 8, font, color });
-        p1.drawText(p.afectacion.otros.toFixed(2), { x: 470, y: 436, size: 8, font, color });
+        p1.drawText(p.afectacion.efectivo.toFixed(2), { x: 140, y: 465, size: 8, font, color });
+        p1.drawText(p.afectacion.vinos.toFixed(2), { x: 310, y: 465, size: 8, font, color });
+        p1.drawText(p.afectacion.cerveza.toFixed(2), { x: 480, y: 465, size: 8, font, color });
 
-        // EMPLEADOS PRESENTES
-        p1.drawText(`${p.empleados.e1.nom} ${p.empleados.e1.ape}`, { x: 110, y: 375, size: 8, font, color });
-        p1.drawText(p.empleados.e1.edad, { x: 110, y: 355, size: 8, font, color });
-        p1.drawText(p.empleados.e1.puesto, { x: 200, y: 355, size: 8, font, color });
-        p1.drawText(p.empleados.e1.tel, { x: 110, y: 335, size: 8, font, color });
+        p1.drawText(p.afectacion.cigarros.toFixed(2), { x: 140, y: 440, size: 8, font, color });
+        p1.drawText(p.afectacion.meds.toFixed(2), { x: 310, y: 440, size: 8, font, color });
+        p1.drawText(p.afectacion.abarrotes.toFixed(2), { x: 480, y: 440, size: 8, font, color });
 
-        p1.drawText(`${p.empleados.e2.nom} ${p.empleados.e2.ape}`, { x: 380, y: 375, size: 8, font, color });
-        p1.drawText(p.empleados.e2.edad, { x: 380, y: 355, size: 8, font, color });
-        p1.drawText(p.empleados.e2.puesto, { x: 470, y: 355, size: 8, font, color });
-        p1.drawText(p.empleados.e2.tel, { x: 380, y: 335, size: 8, font, color });
+        p1.drawText(p.afectacion.ortopedia.toFixed(2), { x: 140, y: 415, size: 8, font, color });
+        p1.drawText(p.afectacion.eqmed.toFixed(2), { x: 310, y: 415, size: 8, font, color });
+        p1.drawText(p.afectacion.otros.toFixed(2), { x: 480, y: 415, size: 8, font, color });
 
-        // DESCRIPCIÓN DE HECHOS
-        p1.drawText(p.hechos.lesionados, { x: 200, y: 280, size: 8, font, color });
-        p1.drawText(p.hechos.videos, { x: 420, y: 280, size: 8, font, color });
-        
-        // Multi-línea para descripción
-        const descText = p.hechos.desc || '';
-        p1.drawText(descText.substring(0, 100), { x: 50, y: 240, size: 8, font, color });
-        if (descText.length > 100) p1.drawText(descText.substring(100, 200), { x: 50, y: 228, size: 8, font, color });
+        // EMPLEADOS
+        p1.drawText(`${p.empleados.e1.nom} ${p.empleados.e1.ape}`, { x: 110, y: 358, size: 8, font, color });
+        p1.drawText(p.empleados.e1.edad || '', { x: 90, y: 338, size: 8, font, color });
+        p1.drawText(p.empleados.e1.puesto || '', { x: 180, y: 338, size: 8, font, color });
+        p1.drawText(p.empleados.e1.tel || '', { x: 110, y: 298, size: 8, font, color });
 
-        // HOJA 2: SOSPECHOSOS
+        p1.drawText(`${p.empleados.e2.nom} ${p.empleados.e2.ape}`, { x: 370, y: 358, size: 8, font, color });
+        p1.drawText(p.empleados.e2.edad || '', { x: 350, y: 338, size: 8, font, color });
+        p1.drawText(p.empleados.e2.puesto || '', { x: 440, y: 338, size: 8, font, color });
+        p1.drawText(p.empleados.e2.tel || '', { x: 370, y: 298, size: 8, font, color });
+
+        // HECHOS
+        p1.drawText(p.hechos.lesionados || 'NO', { x: 220, y: 242, size: 8, font, color });
+        p1.drawText(p.hechos.videos || 'NO', { x: 420, y: 242, size: 8, font, color });
+
+        const desc = p.hechos.desc || '';
+        p1.drawText(desc.substring(0, 95), { x: 45, y: 200, size: 8, font, color });
+        if (desc.length > 95) p1.drawText(desc.substring(95, 190), { x: 45, y: 188, size: 8, font, color });
+
+        // ----------------------------------------------------
+        // HOJA 2: SOSPECHOSOS (REVERSO)
+        // ----------------------------------------------------
         if (p2 && p.sospechosos) {
-          const yStart = [650, 500, 350, 200];
+          const ySospechosos = [645, 480, 315, 150];
+
           p.sospechosos.forEach((s, idx) => {
             if (idx < 4) {
-              const y = yStart[idx];
-              p2.drawText(s.edad || '--', { x: 120, y: y, size: 8, font, color });
-              p2.drawText(s.sexo || '--', { x: 220, y: y, size: 8, font, color });
-              p2.drawText(s.colores || '--', { x: 380, y: y, size: 8, font, color });
-              p2.drawText(`Prenda: ${s.prenda_sup} | Pantalón: ${s.pantalon}`, { x: 60, y: y - 20, size: 8, font, color });
+              const y = ySospechosos[idx];
+
+              p2.drawText(s.edad || '--', { x: 115, y: y, size: 8, font, color });
+              if (s.sexo === 'Hombre') p2.drawText('X', { x: 212, y: y, size: 8, font, color });
+              if (s.sexo === 'Mujer') p2.drawText('X', { x: 262, y: y, size: 8, font, color });
+
+              p2.drawText(s.colores || '--', { x: 380, y: y - 18, size: 8, font, color });
             }
           });
         }
 
-        // DESCARGAR ARCHIVO PDF VECTORIAL PERFECTO
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: "application/pdf" });
         const link = document.createElement("a");
@@ -582,7 +586,7 @@
         link.click();
 
       } catch (err) {
-        alert("Error al cargar la plantilla PDF vectorial: " + err.message + ". Verifique que subió el archivo 'plantilla.pdf' a la raíz de la app.");
+        alert("Error al cargar o rellenar el PDF: " + err.message);
       }
     }
 
